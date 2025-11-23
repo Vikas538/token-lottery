@@ -18,7 +18,7 @@ pub const  URI :&str="https://thumbs.dreamstime.com/b/blue-ticket-isolated-white
 #[program]
 pub mod tokenlotter {
 
-    use anchor_spl::metadata::{CreateMasterEditionV3, mpl_token_metadata::types::{CollectionDetails, Creator, DataV2}};
+    use anchor_spl::metadata::{CreateMasterEditionV3, SignMetadata, mpl_token_metadata::types::{CollectionDetails, Creator, DataV2}, sign_metadata};
 
     use super::*;
 
@@ -99,6 +99,16 @@ pub mod tokenlotter {
             }, &signer_seeds),
             Some(0)
         )?;
+
+        msg!("Verifing collection");
+
+        sign_metadata(
+            CpiContext::new_with_signer(ctx.accounts.token_metadata_program.to_account_info(), 
+                SignMetadata{
+                    creator:ctx.accounts.collection_mint.to_account_info(),
+                    metadata:ctx.accounts.metadata.to_account_info()
+                },
+                &signer_seeds))?;
 
         Ok(())
     }
