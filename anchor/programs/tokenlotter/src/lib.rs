@@ -3,7 +3,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{associated_token::AssociatedToken, token_interface::{Mint,mint_to,MintTo, TokenAccount, TokenInterface},metadata::Metadata};
 
-use anchor_spl::metadata::{create_metadata_accounts_v3,CreateMetadataAccountsV3};
+use anchor_spl::metadata::{create_metadata_accounts_v3,CreateMetadataAccountsV3,create_master_edition_v3};
 
 
 declare_id!("Count3AcZucFDPSFBAeHkQ6AvttieKUkyJ8HiQGhQwe");
@@ -18,7 +18,7 @@ pub const  URI :&str="https://thumbs.dreamstime.com/b/blue-ticket-isolated-white
 #[program]
 pub mod tokenlotter {
 
-    use anchor_spl::metadata::mpl_token_metadata::types::{CollectionDetails, DataV2,Creator};
+    use anchor_spl::metadata::{CreateMasterEditionV3, mpl_token_metadata::types::{CollectionDetails, Creator, DataV2}};
 
     use super::*;
 
@@ -51,7 +51,7 @@ pub mod tokenlotter {
             to:ctx.accounts.collection_token_account.to_account_info(),
             authority:ctx.accounts.collection_mint.to_account_info(),
         },
-        signer_seeds),1);
+        signer_seeds),1)?;
 
         create_metadata_accounts_v3(
             CpiContext::new_with_signer(ctx.accounts.token_metadata_program.to_account_info(),CreateMetadataAccountsV3{
@@ -82,6 +82,23 @@ pub mod tokenlotter {
                 size:0
             })
 ,        )?;
+
+        msg!("create master edition account");
+
+        create_master_edition_v3(
+            CpiContext::new_with_signer(ctx.accounts.token_metadata_program.to_account_info(), CreateMasterEditionV3{
+                payer:ctx.accounts.payer.to_account_info(),
+                mint:ctx.accounts.collection_mint.to_account_info(),
+                edition:ctx.accounts.master_edition.to_account_info(),
+                mint_authority:ctx.accounts.collection_mint.to_account_info(),
+                update_authority:ctx.accounts.collection_mint.to_account_info(),
+                metadata:ctx.accounts.metadata.to_account_info(),
+                token_program:ctx.accounts.token_program.to_account_info(),
+                system_program:ctx.accounts.system_program.to_account_info(),
+                rent:ctx.accounts.rent.to_account_info()
+            }, &signer_seeds),
+            Some(0)
+        )?;
 
         Ok(())
     }
