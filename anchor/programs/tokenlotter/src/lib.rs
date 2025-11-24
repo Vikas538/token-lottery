@@ -6,6 +6,8 @@ use anchor_spl::{associated_token::AssociatedToken, token_interface::{Mint,mint_
 use anchor_spl::metadata::{create_metadata_accounts_v3,CreateMetadataAccountsV3,create_master_edition_v3,CreateMasterEditionV3,set_and_verify_sized_collection_item,SetAndVerifySizedCollectionItem};
 use anchor_spl::metadata::mpl_token_metadata::types::{CollectionDetails, Creator, DataV2};
 
+use switchboard_on_demand::accounts::RandomnessAccountData;
+
 
 declare_id!("Count3AcZucFDPSFBAeHkQ6AvttieKUkyJ8HiQGhQwe");
 
@@ -212,7 +214,14 @@ pub mod tokenlotter {
             return Err(ErrorCode::NotAuthorised.into())
         }
 
-        let randomness_data = RandomnessAccountData::parse(ctx.accounts.randomness_account.data.as_ref())?;
+        let randomness_data = RandomnessAccountData::parse(ctx.accounts.randomness_account.data.borrow()).unwrap();
+
+
+        if randomness_data.seed_slot != clock.slot -1 {
+            return Err(ErrorCode::RandomnessAlreadyRevealed.into())
+        }
+
+        token_lottery.randomness_account = ctx.accounts.randomness_account.key();
         Ok(())
     }
    
@@ -388,6 +397,8 @@ pub enum ErrorCode{
 #[msg("Lottery not open")]
 LotteryNotOpen,
 #[msg("not authorized")]
-NotAuthorised
+NotAuthorised,
+#[msg("randomness already revealed")]
+RandomnessAlreadyRevealed
 
 }
