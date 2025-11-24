@@ -18,9 +18,6 @@ pub const  URI :&str="https://thumbs.dreamstime.com/b/blue-ticket-isolated-white
 
 #[program]
 pub mod tokenlotter {
-
-
-
     use super::*;
 
     pub fn initialize_config(ctx:Context<InitializeConfig>,start:u64,end:u64,price:u64)->Result<()>{
@@ -206,7 +203,18 @@ pub mod tokenlotter {
         Ok(())
     }
 
+    pub fn commit_randomness(ctx:Context<CommitRandomness>)->Result<()>{
 
+        let clock =Clock::get()?;
+        let token_lottery = &mut ctx.accounts.token_lottery;
+
+        if ctx.accounts.payer.key() != token_lottery.authority{
+            return Err(ErrorCode::NotAuthorised.into())
+        }
+
+        let randomness_data = RandomnessAccountData::parse(ctx.accounts.randomness_account.data.as_ref())?;
+        Ok(())
+    }
    
 }
 
@@ -339,6 +347,24 @@ pub struct BuyTicket<'info>{
 
 }
 
+
+#[derive(Accounts)]
+pub struct CommitRandomness<'info>{
+
+    #[account(mut)]
+    pub payer:Signer<'info>,
+
+    #[account(
+        mut,
+        seeds=[b"token_lottery".as_ref()],
+        bump=token_lottery.bump
+    )]
+    pub token_lottery:Account<'info,TokenLottery>,
+
+    /// CHECK: this account is managed by the switchboard smart contract 
+    pub randomness_account:UncheckedAccount<'info>
+}
+
 #[account]
 #[derive(InitSpace)]
 pub struct TokenLottery{
@@ -355,9 +381,13 @@ pub struct TokenLottery{
 }
 
 
+
+
 #[error_code]
 pub enum ErrorCode{
 #[msg("Lottery not open")]
-LotteryNotOpen
+LotteryNotOpen,
+#[msg("not authorized")]
+NotAuthorised
 
 }
